@@ -6,7 +6,9 @@ namespace Coffee_Machine
 {
     internal class Program
     {
-        private static Ingredients machineIngredients = new Ingredients(1000, 1000, 500, 300);
+
+        static Ingredients machineIngredients = DatabaseManager.LoadIngredients();
+
 
         private static int balance = 0;
         private static List<Coffee> coffeeList = new List<Coffee>

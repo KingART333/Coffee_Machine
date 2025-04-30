@@ -139,19 +139,22 @@ namespace src.Services
         public static void InitializeDatabase()
         {
             using var db = new ApplicationContext();
-            db.Database.EnsureCreated(); // Creates DB if it doesn't exist
+            db.Database.EnsureCreated(); 
 
-            // Log current ingredients to check if they are saved
             var ingredients = db.Ingredients.FirstOrDefault();
-            if (ingredients != null)
+            if (ingredients == null)
             {
-                Console.WriteLine($"Ingredients loaded: Water={ingredients.Water}, Milk={ingredients.Milk}, Coffee={ingredients.Coffee}, Sugar={ingredients.Sugar}");
+                ingredients = new Ingredients(1000, 1000, 500, 300);
+                db.Ingredients.Add(ingredients);
+                db.SaveChanges();
             }
             else
             {
-                Console.WriteLine("No ingredients found in the database.");
+                Console.WriteLine($"Ingredients loaded: Water={ingredients.Water}, Milk={ingredients.Milk}, Coffee={ingredients.Coffee}, Sugar={ingredients.Sugar}");
             }
         }
+
+
 
         public static void SaveIngredients(Ingredients ingredients)
         {
@@ -161,7 +164,6 @@ namespace src.Services
 
             if (existingIngredients != null)
             {
-                // Update existing ingredients
                 existingIngredients.Water = ingredients.Water;
                 existingIngredients.Milk = ingredients.Milk;
                 existingIngredients.Coffee = ingredients.Coffee;
@@ -171,11 +173,11 @@ namespace src.Services
             }
             else
             {
-                // Add new ingredients if they don't exist
                 db.Ingredients.Add(ingredients);
                 db.SaveChanges();
             }
         }
+
 
 
 
@@ -213,6 +215,23 @@ namespace src.Services
             db.Coffee.AddRange(coffees);
             db.SaveChanges();
         }
+
+        public static Ingredients LoadIngredients()
+        {
+            using var db = new ApplicationContext();
+            var ingredients = db.Ingredients.FirstOrDefault();
+
+            if (ingredients != null)
+            {
+                return ingredients;
+            }
+
+            ingredients = new Ingredients(1000, 1000, 500, 300);
+            db.Ingredients.Add(ingredients);
+            db.SaveChanges();
+            return ingredients;
+        }
+
     }
 }
 

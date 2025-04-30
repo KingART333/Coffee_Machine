@@ -20,11 +20,7 @@ namespace Coffee_Machine.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            var dbPath = Path.Combine(
-                Environment.GetFolderPath(
-                Environment.SpecialFolder.
-                LocalApplicationData),
-                "Coffee_machine_DB.db");
+            var dbPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "coffee.db"));
             optionsBuilder.UseSqlite($"Data Source={dbPath}");
         }
     }
