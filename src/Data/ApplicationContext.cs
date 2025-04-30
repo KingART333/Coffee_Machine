@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Coffee_Machine.Models;
+using src.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Coffee_Machine.Data
 {
     internal class ApplicationContext : DbContext
     {
+        public DbSet<CoinTransaction> CoinTransactions { get; set; }
         public DbSet<Ingredients> Ingredients { get; set; }
         public DbSet<Coffee> Coffee { get; set; }
         public DbSet<Coin> Coin { get; set; }
@@ -19,7 +20,12 @@ namespace Coffee_Machine.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite("Data Source=coffee_machine.db");
+            var dbPath = Path.Combine(
+                Environment.GetFolderPath(
+                Environment.SpecialFolder.
+                LocalApplicationData),
+                "Coffee_machine_DB.db");
+            optionsBuilder.UseSqlite($"Data Source={dbPath}");
         }
     }
 }

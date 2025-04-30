@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Coffee_Machine.Models;
+using src.Models;
 
-namespace Coffee_Machine.Services
+namespace src.Services
 {
     public class CoffeeType
     {

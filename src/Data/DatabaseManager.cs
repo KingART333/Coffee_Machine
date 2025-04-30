@@ -126,3 +126,93 @@
 //        }
 //    }
 //}
+using src.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Coffee_Machine.Data;
+
+namespace src.Services
+{
+    internal static class DatabaseManager
+    {
+        public static void InitializeDatabase()
+        {
+            using var db = new ApplicationContext();
+            db.Database.EnsureCreated(); // Creates DB if it doesn't exist
+
+            // Log current ingredients to check if they are saved
+            var ingredients = db.Ingredients.FirstOrDefault();
+            if (ingredients != null)
+            {
+                Console.WriteLine($"Ingredients loaded: Water={ingredients.Water}, Milk={ingredients.Milk}, Coffee={ingredients.Coffee}, Sugar={ingredients.Sugar}");
+            }
+            else
+            {
+                Console.WriteLine("No ingredients found in the database.");
+            }
+        }
+
+        public static void SaveIngredients(Ingredients ingredients)
+        {
+            using var db = new ApplicationContext();
+
+            var existingIngredients = db.Ingredients.FirstOrDefault();
+
+            if (existingIngredients != null)
+            {
+                // Update existing ingredients
+                existingIngredients.Water = ingredients.Water;
+                existingIngredients.Milk = ingredients.Milk;
+                existingIngredients.Coffee = ingredients.Coffee;
+                existingIngredients.Sugar = ingredients.Sugar;
+
+                db.SaveChanges();
+            }
+            else
+            {
+                // Add new ingredients if they don't exist
+                db.Ingredients.Add(ingredients);
+                db.SaveChanges();
+            }
+        }
+
+
+
+        public static void AddCoinTransaction(int coinValue)
+        {
+            using var db = new ApplicationContext();
+
+            var transaction = new CoinTransaction
+            {
+                CoinValue = coinValue,
+                Quantity = 1,
+                Timestamp = DateTime.Now
+            };
+
+            db.CoinTransactions.Add(transaction);
+            db.SaveChanges();
+        }
+
+        public static void SaveCoins(List<Coin> coins)
+        {
+            using var db = new ApplicationContext();
+
+            var existing = db.Coin.ToList();
+            db.Coin.RemoveRange(existing);
+            db.Coin.AddRange(coins);
+            db.SaveChanges();
+        }
+
+        public static void SaveCoffeeTypes(List<Coffee> coffees)
+        {
+            using var db = new ApplicationContext();
+
+            var existing = db.Coffee.ToList();
+            db.Coffee.RemoveRange(existing);
+            db.Coffee.AddRange(coffees);
+            db.SaveChanges();
+        }
+    }
+}
+

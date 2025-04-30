@@ -1,7 +1,6 @@
-﻿
-
-using Coffee_Machine.Models;
-using Coffee_Machine.Services;
+﻿using Coffee_Machine.Data;
+using src.Models;
+using src.Services;
 
 namespace Coffee_Machine
 {
@@ -27,13 +26,10 @@ namespace Coffee_Machine
 
         static void Main(string[] args)
         {
-            #region
-            //sqlite
-            //DatabaseManager.InitializeDatabase();
-            //DatabaseManager.SaveIngredients(machineIngredients);
-            //DatabaseManager.SaveCoins(coinList);
-            //DatabaseManager.SaveCoffeeTypes(coffeeList);
-            #endregion
+            DatabaseManager.InitializeDatabase();
+            DatabaseManager.SaveIngredients(machineIngredients);
+            DatabaseManager.SaveCoins(coinList);
+            DatabaseManager.SaveCoffeeTypes(coffeeList);
 
             while (true)
             {
@@ -122,6 +118,25 @@ namespace Coffee_Machine
 
             balance += coin;
             //DatabaseManager.AddCoinTransaction(coin); // sqlite
+            Coin selectedCoin = coinList.FirstOrDefault(c => c.Value == coin);
+            if (selectedCoin == null)
+            {
+                Console.WriteLine("Coin not recognized.");
+                return;
+            }
+
+            using (var db = new ApplicationContext())
+            {
+                db.CoinTransactions.Add(new CoinTransaction
+                {
+                    CoinValue = selectedCoin.Value,
+                    Quantity = 1,
+                    Timestamp = DateTime.Now
+                });
+
+                db.SaveChanges();
+            }
+
             Console.WriteLine("Coin added successfully! Current Balance: " + balance + " dram");
         }
 

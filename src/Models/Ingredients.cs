@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Coffee_Machine.Data;
 
-namespace Coffee_Machine.Models
+namespace src.Models
 {
     public class Ingredients
     {
@@ -32,6 +33,13 @@ namespace Coffee_Machine.Models
             Milk -= milk;
             Coffee -= coffee;
             Sugar -= sugar;
+
+            // Save the updated ingredients back to the database
+            using (var db = new ApplicationContext())
+            {
+                db.Ingredients.Update(this); // Update the current ingredients
+                db.SaveChanges();
+            }
             return true;
         }
     }

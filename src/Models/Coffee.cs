@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Coffee_Machine.Models
+namespace src.Models
 {
     public class Coffee
     {
