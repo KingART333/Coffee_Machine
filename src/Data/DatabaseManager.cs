@@ -131,6 +131,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Coffee_Machine.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace src.Services
 {
@@ -139,7 +140,7 @@ namespace src.Services
         public static void InitializeDatabase()
         {
             using var db = new ApplicationContext();
-            db.Database.EnsureCreated(); 
+            db.Database.Migrate(); 
 
             var ingredients = db.Ingredients.FirstOrDefault();
             if (ingredients == null)
@@ -230,6 +231,28 @@ namespace src.Services
             db.Ingredients.Add(ingredients);
             db.SaveChanges();
             return ingredients;
+        }
+
+        public static List<Coin> LoadCoins()
+        {
+            using var db = new ApplicationContext();
+            var coins = db.Coin.ToList();
+
+            // If no coins exist in the database, populate with default coins
+            if (coins.Count == 0)
+            {
+                coins = new List<Coin>
+        {
+            new Coin("50 dram", 50, 0),
+            new Coin("100 dram", 100, 0),
+            new Coin("200 dram", 200, 0),
+            new Coin("500 dram", 500, 0)
+        };
+                db.Coin.AddRange(coins);
+                db.SaveChanges();
+            }
+
+            return coins;
         }
 
     }

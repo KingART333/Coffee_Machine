@@ -6,11 +6,9 @@ namespace Coffee_Machine
 {
     internal class Program
     {
-
         static Ingredients machineIngredients = DatabaseManager.LoadIngredients();
-
-
         private static int balance = 0;
+
         private static List<Coffee> coffeeList = new List<Coffee>
         {
             new Coffee("Americano", 100),
@@ -18,6 +16,7 @@ namespace Coffee_Machine
             new Coffee("Cappuccino", 200),
             new Coffee("Latte", 250)
         };
+
         public static List<Coin> coinList = new List<Coin>
         {
             new Coin("50 dram", 50),
@@ -29,56 +28,87 @@ namespace Coffee_Machine
         static void Main(string[] args)
         {
             DatabaseManager.InitializeDatabase();
+            coinList = DatabaseManager.LoadCoins(); 
             DatabaseManager.SaveIngredients(machineIngredients);
             DatabaseManager.SaveCoins(coinList);
             DatabaseManager.SaveCoffeeTypes(coffeeList);
 
             while (true)
             {
-                Console.WriteLine("Current Balance: " + balance + " dram");
-                Console.WriteLine("1. Add Coins");
-                Console.WriteLine("2. Select Coffee");
-                Console.WriteLine("3. Exit");
-                Console.Write("Enter your choice: ");
+                Thread.Sleep(1000);
 
-                if (!int.TryParse(Console.ReadLine(), out int mainChoice))
-                {
-                    Console.WriteLine("Invalid input. Please enter a number.");
-                    continue;
-                }
+                int mainChoice = ShowArrowMenu("Main Menu", new List<string> {
+                    "Add Coins",
+                    "Select Coffee",
+                    "Refill Ingredients",
+                    "Exit"
+                });
 
                 switch (mainChoice)
                 {
-                    case 1:
+                    case 0:
                         AddingCoin();
                         break;
+                    case 1:
+                        List<string> coffeeOptions = coffeeList.Select(c => $"{c.Name} - {c.Price} dram").ToList();
+                        coffeeOptions.Add("Back");
+                        int coffeeChoice = ShowArrowMenu("Select Coffee", coffeeOptions);
+                        if (coffeeChoice < coffeeList.Count)
+                            GetCoffeeType(coffeeChoice + 1);
+                        break;
                     case 2:
-                        ShowMenu();
-                        Console.WriteLine();
-                        if (!int.TryParse(Console.ReadLine(), out int coffeeChoice))
-                        {
-                            Console.WriteLine("Invalid input. Please enter a number.");
-                            continue;
-                        }
-                        GetCoffeeType(coffeeChoice);
+                        RefillIngredients(1000, 500, 300, 200);
                         break;
                     case 3:
-                        Console.WriteLine("Exiting the program.");
+                        ExitAndGiveChange();
                         return;
-                    default:
-                        Console.WriteLine("Invalid choice. Please try again.");
-                        break;
                 }
             }
         }
 
-        public static void ShowMenu()
+        public static int ShowArrowMenu(string title, List<string> options)
         {
-            for (int i = 0; i < coffeeList.Count; i++)
+            int selectedIndex = 0;
+            ConsoleKey key;
+
+            do
             {
-                Console.WriteLine($"{i + 1}. {coffeeList[i].Name} \t\t {coffeeList[i].Price} dram");
-            }
-            Console.WriteLine($"{coffeeList.Count + 1}. Back");
+                Console.Clear();
+
+                Console.WriteLine($"Current Balance: {balance} dram\n");
+
+
+                Console.WriteLine($"{title}:\n");
+
+                for (int i = 0; i < options.Count; i++)
+                {
+                    if (i == selectedIndex)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine($"> {options[i]}");
+                        Console.ResetColor();
+                    }
+                    else
+                    {
+                        Console.WriteLine($"  {options[i]}");
+                    }
+                }
+
+                key = Console.ReadKey(true).Key;
+
+                switch (key)
+                {
+                    case ConsoleKey.UpArrow:
+                        selectedIndex = (selectedIndex == 0) ? options.Count - 1 : selectedIndex - 1;
+                        break;
+                    case ConsoleKey.DownArrow:
+                        selectedIndex = (selectedIndex + 1) % options.Count;
+                        break;
+                }
+
+            } while (key != ConsoleKey.Enter);
+
+            return selectedIndex;
         }
 
         public static void ShowCashType()
@@ -102,30 +132,16 @@ namespace Coffee_Machine
 
         public static void AddingCoin()
         {
-            ShowCashType();
-            Console.Write("Enter the coin value to add: ");
-            if (!int.TryParse(Console.ReadLine(), out int coin))
-            {
-                Console.WriteLine("Invalid input. Please enter a number.");
-                return;
-            }
+            List<string> coinOptions = coinList.Select(c => $"{c.Value} dram").ToList();
+            coinOptions.Add("Back");
 
-            bool validCoin = coinList.Any(c => c.Value == coin);
+            int coinChoice = ShowArrowMenu("Insert Coin", coinOptions);
 
-            if (!validCoin)
-            {
-                Console.WriteLine("Invalid coin. Please enter a valid coin value.");
+            if (coinChoice == coinOptions.Count - 1)
                 return;
-            }
 
-            balance += coin;
-            //DatabaseManager.AddCoinTransaction(coin); // sqlite
-            Coin selectedCoin = coinList.FirstOrDefault(c => c.Value == coin);
-            if (selectedCoin == null)
-            {
-                Console.WriteLine("Coin not recognized.");
-                return;
-            }
+            Coin selectedCoin = coinList[coinChoice];
+            balance += selectedCoin.Value;
 
             using (var db = new ApplicationContext())
             {
@@ -136,10 +152,17 @@ namespace Coffee_Machine
                     Timestamp = DateTime.Now
                 });
 
-                db.SaveChanges();
+                var coinInDb = db.Coin.FirstOrDefault(c => c.Value == selectedCoin.Value);
+                if (coinInDb != null)
+                {
+                    coinInDb.Quantity += 1;
+                    db.SaveChanges();
+                }
             }
 
-            Console.WriteLine("Coin added successfully! Current Balance: " + balance + " dram");
+            Console.Clear();
+            Console.WriteLine($"You inserted: {selectedCoin.Value} dram");
+            Console.WriteLine($"Current Balance: {balance} dram");
         }
 
 
@@ -211,5 +234,115 @@ namespace Coffee_Machine
                 return false;
             }
         }
+
+        public static void GiveChange()
+        {
+            if (balance > 0)
+            {
+                int remainingBalance = balance;
+                Dictionary<string, int> changeGiven = new Dictionary<string, int>();
+
+                using (var db = new ApplicationContext())
+                {
+                    var availableCoins = db.Coin.ToList();
+
+                    var tempCoins = availableCoins.Select(c => new
+                    {
+                        c.Label,
+                        c.Value,
+                        c.Quantity
+                    }).ToList();
+
+                    foreach (var coin in tempCoins.OrderByDescending(c => c.Value))
+                    {
+                        if (coin.Quantity == 0)
+                            continue;
+
+                        int coinCount = remainingBalance / coin.Value;
+                        coinCount = Math.Min(coinCount, coin.Quantity);
+
+                        if (coinCount > 0)
+                        {
+                            changeGiven[coin.Label] = coinCount;
+                            remainingBalance -= coinCount * coin.Value;
+                        }
+
+                        if (remainingBalance == 0)
+                            break;
+                    }
+
+                    if (remainingBalance > 0)
+                    {
+                        Console.Clear();
+                        Console.WriteLine("⚠ Unable to provide exact change due to insufficient coins.");
+                        Console.WriteLine($"Your remaining balance: {balance} dram");
+                        Console.WriteLine("Please contact support.");
+                        Console.ReadKey();
+                        return; 
+                    }
+
+                    foreach (var coin in changeGiven)
+                    {
+                        var coinInDb = availableCoins.First(c => c.Label == coin.Key);
+                        coinInDb.Quantity -= coin.Value;
+
+                        db.CoinTransactions.Add(new CoinTransaction
+                        {
+                            CoinValue = coinInDb.Value,
+                            Quantity = coin.Value,
+                            Timestamp = DateTime.Now
+                        });
+                    }
+
+                    db.SaveChanges();
+                }
+
+                Console.Clear();
+                Console.WriteLine("Change returned:");
+                foreach (var coin in changeGiven)
+                {
+                    Console.WriteLine($"{coin.Value} x {coin.Key}");
+                }
+
+                Console.WriteLine("Remaining Balance: 0 dram");
+                balance = 0;
+            }
+            else
+            {
+                Console.WriteLine("No money left in the balance to return.");
+            }
+        }
+
+
+
+
+        public static void ExitAndGiveChange()
+        {
+            GiveChange();
+
+            Console.WriteLine("Exiting the program.");
+            Environment.Exit(0);
+        }
+
+        public static void RefillIngredients(int water, int milk, int coffee, int sugar)
+        {
+            machineIngredients.Water += water;
+            machineIngredients.Milk += milk;
+            machineIngredients.Coffee += coffee;
+            machineIngredients.Sugar += sugar;
+
+            DatabaseManager.SaveIngredients(machineIngredients);
+
+            Console.WriteLine("\nIngredients refilled successfully!");
+            Console.WriteLine($"Current Ingredient Levels:");
+            Console.WriteLine($"Water: {machineIngredients.Water}");
+            Console.WriteLine($"Milk: {machineIngredients.Milk}");
+            Console.WriteLine($"Coffee: {machineIngredients.Coffee}");
+            Console.WriteLine($"Sugar: {machineIngredients.Sugar}");
+
+            Console.WriteLine("\nPress any key to return to the menu...");
+            Console.ReadKey();
+        }
+
     }
 }

@@ -34,10 +34,9 @@ namespace src.Models
             Coffee -= coffee;
             Sugar -= sugar;
 
-            // Save the updated ingredients back to the database
             using (var db = new ApplicationContext())
             {
-                db.Ingredients.Update(this); // Update the current ingredients
+                db.Ingredients.Update(this);
                 db.SaveChanges();
             }
             return true;

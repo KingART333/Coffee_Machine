@@ -12,11 +12,14 @@ namespace src.Models
 
         public string Label { get; set; }
         public int Value { get; set; }
+        public int Quantity { get; set; }
 
-        public Coin(string label, int value)
+        public Coin(string label, int value, int quantity = 0)
         {
             Label = label;
             Value = value;
+            Quantity = quantity;
+
         }
     }
 }
