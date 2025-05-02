@@ -16,6 +16,7 @@ namespace src.Models
         public float Coffee { get; set; }
         public float Sugar { get; set; }
 
+
         public Ingredients(float water, float milk, float coffee, float sugar)
         {
             Water = water;

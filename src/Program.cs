@@ -8,30 +8,37 @@ namespace Coffee_Machine
     {
         static Ingredients machineIngredients = DatabaseManager.LoadIngredients();
         private static int balance = 0;
-
-        private static List<Coffee> coffeeList = new List<Coffee>
-        {
-            new Coffee("Americano", 100),
-            new Coffee("Espresso", 150),
-            new Coffee("Cappuccino", 200),
-            new Coffee("Latte", 250)
-        };
-
-        public static List<Coin> coinList = new List<Coin>
-        {
-            new Coin("50 dram", 50),
-            new Coin("100 dram", 100),
-            new Coin("200 dram", 200),
-            new Coin("500 dram", 500)
-        };
+        private static List<Coffee> coffeeList;
+        public static List<Coin> coinList = new List<Coin>();
 
         static void Main(string[] args)
         {
             DatabaseManager.InitializeDatabase();
-            coinList = DatabaseManager.LoadCoins(); 
             DatabaseManager.SaveIngredients(machineIngredients);
-            DatabaseManager.SaveCoins(coinList);
-            DatabaseManager.SaveCoffeeTypes(coffeeList);
+            coinList = DatabaseManager.LoadCoins();
+            if (coinList.Count == 0)
+            {
+                coinList = new List<Coin>
+                {
+                    new Coin("50 dram", 50),
+                    new Coin("100 dram", 100),
+                    new Coin("200 dram", 200),
+                    new Coin("500 dram", 500)
+                };
+                DatabaseManager.SaveCoins(coinList);
+            }
+            coffeeList = DatabaseManager.LoadCoffeeTypes();
+            if (coffeeList.Count == 0)
+            {
+                coffeeList = new List<Coffee>
+                {
+                    new Coffee("Americano", 100),
+                    new Coffee("Espresso", 150),
+                    new Coffee("Cappuccino", 200),
+                    new Coffee("Latte", 250)
+                };
+                DatabaseManager.SaveCoffeeTypes(coffeeList);
+            }
 
             while (true)
             {
@@ -40,7 +47,7 @@ namespace Coffee_Machine
                 int mainChoice = ShowArrowMenu("Main Menu", new List<string> {
                     "Add Coins",
                     "Select Coffee",
-                    "Refill Ingredients",
+                    "Admin Menu",
                     "Exit"
                 });
 
@@ -57,7 +64,7 @@ namespace Coffee_Machine
                             GetCoffeeType(coffeeChoice + 1);
                         break;
                     case 2:
-                        RefillIngredients(1000, 500, 300, 200);
+                        PasswordImitation();
                         break;
                     case 3:
                         ExitAndGiveChange();
@@ -109,6 +116,22 @@ namespace Coffee_Machine
             } while (key != ConsoleKey.Enter);
 
             return selectedIndex;
+        }
+
+        public static void PasswordImitation()
+        {
+            Console.Clear();
+            Console.WriteLine("Enter the password to access the admin menu:");
+            string password = Console.ReadLine();
+            if (password == "admin123")
+            {
+                AdminMenu();
+            }
+            else
+            {
+                Console.WriteLine("Incorrect password. Access denied.");
+                Console.ReadKey();
+            }
         }
 
         public static void ShowCashType()
@@ -313,9 +336,6 @@ namespace Coffee_Machine
             }
         }
 
-
-
-
         public static void ExitAndGiveChange()
         {
             GiveChange();
@@ -324,12 +344,29 @@ namespace Coffee_Machine
             Environment.Exit(0);
         }
 
-        public static void RefillIngredients(int water, int milk, int coffee, int sugar)
+        public static void RefillIngredients()
         {
-            machineIngredients.Water += water;
-            machineIngredients.Milk += milk;
-            machineIngredients.Coffee += coffee;
-            machineIngredients.Sugar += sugar;
+            Console.Clear();
+
+            Console.WriteLine("Enter the amount to refill for each ingredient:");
+
+            Console.Write("Water to refill: ");
+            float waterToAdd = float.Parse(Console.ReadLine());
+
+            Console.Write("Milk to refill: ");
+            float milkToAdd = float.Parse(Console.ReadLine());
+
+            Console.Write("Coffee to refill: ");
+            float coffeeToAdd = float.Parse(Console.ReadLine());
+
+            Console.Write("Sugar to refill: ");
+            float sugarToAdd = float.Parse(Console.ReadLine());
+
+
+            machineIngredients.Water += waterToAdd;
+            machineIngredients.Milk += milkToAdd;
+            machineIngredients.Coffee += coffeeToAdd;
+            machineIngredients.Sugar += sugarToAdd;
 
             DatabaseManager.SaveIngredients(machineIngredients);
 
@@ -344,5 +381,104 @@ namespace Coffee_Machine
             Console.ReadKey();
         }
 
+        public static void AddCoffeeType()
+        {
+            Console.Clear();
+            Console.WriteLine("Enter the name of the new coffee type:");
+            string name = Console.ReadLine();
+
+            Console.WriteLine("Enter the price of the new coffee type:");
+            if (int.TryParse(Console.ReadLine(), out int price))
+            {
+                Console.WriteLine("Enter the amount of Coffee (in grams):");
+                int coffeeAmount = int.Parse(Console.ReadLine());
+
+                Console.WriteLine("Enter the amount of Milk (in milliliters):");
+                int milkAmount = int.Parse(Console.ReadLine());
+
+                Console.WriteLine("Enter the amount of Sugar (in grams):");
+                int sugarAmount = int.Parse(Console.ReadLine());
+
+                Console.WriteLine("Enter the amount of Water (in milliliters):");
+                int waterAmount = int.Parse(Console.ReadLine());
+
+                Ingredients ingredients = new Ingredients(water: waterAmount,
+                                                          milk: milkAmount,
+                                                          coffee: coffeeAmount,
+                                                          sugar: sugarAmount);
+                CoffeeType newCoffeeType = new CoffeeType(ingredients);
+
+                Coffee newCoffee = new Coffee(name, price);
+                coffeeList.Add(newCoffee);
+
+                DatabaseManager.SaveCoffeeTypes(coffeeList);
+
+                Console.WriteLine($"\nNew coffee type '{name}' added successfully!");
+            }
+            else
+            {
+                Console.WriteLine("Invalid price entered. Coffee type not added.");
+            }
+
+            Console.WriteLine("\nPress any key to return to the Admin Menu...");
+            Console.ReadKey();
+        }
+
+        public static void DeleteCoffeeType()
+        {
+            List<string> coffeeOptions = coffeeList.Select(c => $"{c.Name} - {c.Price} dram").ToList();
+            coffeeOptions.Add("Back");
+
+            int coffeeChoice = ShowArrowMenu("Select Coffee Type to Delete", coffeeOptions);
+
+            if (coffeeChoice == coffeeOptions.Count - 1)
+                return;
+
+            Coffee coffeeToDelete = coffeeList[coffeeChoice];
+
+            coffeeList.Remove(coffeeToDelete);
+
+            using (var db = new ApplicationContext())
+            {
+                var coffeeInDb = db.Coffee.FirstOrDefault(c => c.Name == coffeeToDelete.Name);
+                if (coffeeInDb != null)
+                {
+                    db.Coffee.Remove(coffeeInDb);
+                    db.SaveChanges();
+                }
+            }
+
+            Console.WriteLine($"Coffee type '{coffeeToDelete.Name}' has been deleted.");
+            Console.WriteLine("\nPress any key to return to the Admin Menu...");
+            Console.ReadKey();
+        }
+
+        public static void AdminMenu()
+        {
+            while (true)
+            {
+                int adminChoice = ShowArrowMenu("Admin Menu", new List<string> {
+            "Refill Ingredients",
+            "Add Coffee Type",
+            "Delete Coffee Type",
+            "Back"
+        });
+
+                switch (adminChoice)
+                {
+                    case 0:
+                        RefillIngredients();
+                        break;
+                    case 1:
+                        AddCoffeeType();
+                        break;
+                    case 2:
+                        DeleteCoffeeType();
+                        break;
+                    case 3:
+                        return;
+                }
+            }
+        }
     }
 }

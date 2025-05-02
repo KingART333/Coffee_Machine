@@ -233,6 +233,13 @@ namespace src.Services
             return ingredients;
         }
 
+        public static List<Coffee> LoadCoffeeTypes()
+        {
+            using var db = new ApplicationContext();
+            return db.Coffee.ToList();
+        }
+
+
         public static List<Coin> LoadCoins()
         {
             using var db = new ApplicationContext();
